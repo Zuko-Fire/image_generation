@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Paper, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, Modal } from '@mui/material';
+import { Box, Paper, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, Modal, Input } from '@mui/material';
 import { TopPanel } from '../../common/components/TopPanel'; // Adjust the import path as necessary
+import { LoadingButton } from '@mui/lab';
 
 const ImageGenerationPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -9,19 +10,57 @@ const ImageGenerationPage = () => {
   const [password, setPassword] = useState('');
   const [model, setModel] = useState('');
   const [style, setStyle] = useState('');
+  const [prompt, setPrompt] = useState('')
   const [seed, setSeed] = useState('');
   const [size, setSize] = useState('');
+  const [isLoad,setLoad ] = useState(false);
+  const [image, setImage ] = useState('')
 
   // Sample data for models and styles
-  const models = ['Model A', 'Model B', 'Model C', 'Model D'];
+  const models = ['v1-5-pruned-emaonly'];
   const styles = ['Abstract', 'Realism', 'Surrealism', 'Impressionism'];
   const sizes = ['256x256', '512x512', '1024x1024'];
 
-  const handleGenerateImage = () => {
-    // Logic for image generation will go here
-    console.log('Generating image with settings:', { model, style, seed, size });
+
+ const generateImage = async () => {
+  const url = '/sdapi/v1/txt2img';
+  const payload = {
+    prompt: `${prompt} style: ${styles}`,
+    steps: 20,
+    seed: seed ? Number(seed) : -1, 
+    width: size ? Number(size.split('x')[0]) : 512,
+    height: size ? Number(size.split('x')[1]) : 512,
   };
 
+  setLoad(true);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json(); // ← парсим JSON
+
+    if (data.images && data.images.length > 0) {
+      const base64Image = data.images[0]; // первое изображение
+      const imageUrl = `data:image/png;base64,${base64Image}`;
+      setImage(imageUrl); // сохраняем как data URL
+    } else {
+      console.error('No images returned');
+      setImage('');
+    }
+  } catch (error) {
+    console.error('Error generating image:', error);
+    setImage('');
+  } finally {
+    setLoad(false);
+  }
+}
   const handleLogin = () => {
     // Here you would typically validate the login credentials
     if (login && password) {
@@ -64,9 +103,11 @@ const ImageGenerationPage = () => {
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
           }}
         >
-          <Typography variant="h6" color="white">
-            Здесь будет сгенерированное изображение
-          </Typography>
+         {image ? <img src={image} alt="Generated" style={{ maxWidth: '100%' }} /> : (
+  <Typography variant="h6" color="white">
+    Здесь будет сгенерированное изображение
+  </Typography>
+)}
         </Paper>
 
         {/* Settings Form */}
@@ -83,6 +124,15 @@ const ImageGenerationPage = () => {
             Настройки генерации изображения
           </Typography>
 
+      <FormControl fullWidth variant="outlined" sx={{ marginBottom: '1rem' }}>
+            <InputLabel id="model-select-label">Промпт</InputLabel>
+            <Input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              sx={{ backgroundColor: 'white' }}
+            >
+            </Input>
+          </FormControl>
           {/* Model Selection */}
           <FormControl fullWidth variant="outlined" sx={{ marginBottom: '1rem' }}>
             <InputLabel id="model-select-label">Модель</InputLabel>
@@ -149,9 +199,9 @@ const ImageGenerationPage = () => {
           </FormControl>
 
           {/* Generate Button */}
-          <Button variant="contained" color="primary" onClick={handleGenerateImage} fullWidth>
+          <LoadingButton loading={isLoad}  variant="contained" color="primary" onClick={generateImage} fullWidth>
             Сгенерировать изображение
-          </Button>
+          </LoadingButton>
         </Paper>
       </Box>
     </Box>
