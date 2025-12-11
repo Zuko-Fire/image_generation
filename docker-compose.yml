@@ -6,12 +6,15 @@ services:
       context: ./apps/backend
       dockerfile: Dockerfile.dev
     env_file:
-     - ./apps/backend/.env.dev
+      - ./apps/backend/.env.dev
     ports:
       - 3001:3001
     volumes:
-      - ./apps/backend/:/app
+      - ./apps/backend:/app
       - /app/node_modules
+    depends_on:
+      - postgres
+    entrypoint: ["/app/entrypoint.sh"] 
 
   react_app:
     build:
@@ -56,3 +59,19 @@ services:
       - 8081:8081
     depends_on:
       - redis
+
+  stable-diffusion:
+    build:
+      context: apps/sda/stable-diffusion-webui
+      dockerfile: Dockerfile.sd
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./models:/home/app/stable-diffusion-webui/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

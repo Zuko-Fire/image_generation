@@ -95,7 +95,9 @@ export const TopPanel: FC<Props> = ({ hiddenSearc }) => {
             Изучай
           </Button>
         </Box>
-
+<button onClick={() => { throw new Error('Test frontend error'); }}>
+  Сломать фронт
+</button>
         <Box padding="1rem">
           {user ? (
             <Box flexDirection="column">
