@@ -1,0 +1,18 @@
+FROM python:3.10.6
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git wget libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+
+# Клонируем
+RUN git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git .
+
+# Устанавливаем совместимый PyTorch (с поддержкой GTX 1060 sm_61)
+RUN pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+
+# Остальные зависимости (без переустановки torch!)
+RUN pip install -r requirements.txt
+
+# Готовим запуск
+ENV COMMANDLINE_ARGS="--skip-torch-cuda-test --listen --port 7860 --no-half"
+CMD ["./webui.sh"]
